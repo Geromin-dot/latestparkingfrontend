@@ -30,6 +30,16 @@ body {
     box-shadow: 0 14px 40px rgba(15, 23, 42, 0.08);
 }
 
+.admin-large-card {
+    max-width: 1200px !important;
+    width: 95%;
+}
+
+.dashboard-card {
+    max-width: 1200px !important;
+    width: 95%;
+}
+
 .dashboard-card {
     max-width: 900px !important;
     width: 95%;
@@ -156,6 +166,33 @@ button:hover {
     justify-content: space-between;
     gap: 16px;
     margin-bottom: 12px;
+}
+
+/* Tabs */
+.tabs {
+    display: flex;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.tab-button {
+    padding: 12px 24px;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 500;
+    color: #64748b;
+    transition: all 0.2s;
+}
+
+.tab-button:hover {
+    color: #2563eb;
+}
+
+.tab-button.active {
+    color: #2563eb;
+    border-bottom-color: #2563eb;
 }
 
 /* Notification Bell Logic */

@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { usePopup } from '../components/PopupContext';
 
 export default function Login() {
     const navigate = useNavigate();
+    const { showError, showSuccess } = usePopup();
     const [isRegistering, setIsRegistering] = useState(false);
     
     // Form States
@@ -24,6 +26,24 @@ export default function Login() {
     const strands = ["STEM", "ABM", "HUMSS", "GAS", "TVL"];
     const courses = ["BSIT", "BSCS", "BSBA", "BSCrim", "BSHM", "BSA", "BSED"];
 
+    /**
+     * Handle Enter key press for login form
+     */
+    const handleLoginKeyPress = (e) => {
+        if (e.key === 'Enter') {
+            handleLogin();
+        }
+    };
+
+    /**
+     * Handle Enter key press for registration form
+     */
+    const handleRegisterKeyPress = (e) => {
+        if (e.key === 'Enter') {
+            handleRegister();
+        }
+    };
+
     const handleLogin = async () => {
         // 1. ADMIN CHECK
         if (loginRole === 'admin') {
@@ -31,7 +51,7 @@ export default function Login() {
                 localStorage.setItem('currentUser', JSON.stringify({ username: 'admin', role: 'admin' }));
                 navigate('/admin');
             } else {
-                alert("Admin credentials incorrect.");
+                showError("Admin credentials incorrect.");
             }
             return;
         }
@@ -56,7 +76,7 @@ export default function Login() {
             }
         } catch (err) {
             const msg = err.response?.data?.message || "Login failed: Incorrect credentials.";
-            alert(msg);
+            showError(msg);
         }
     };
 
@@ -64,7 +84,7 @@ export default function Login() {
         if (e) e.preventDefault();
         
         if (!username || !password || !fName || !lName) {
-            return alert("Please fill in all required fields.");
+            return showError("Please fill in all required fields.");
         }
 
         let identifierText = regRole === 'student' 
@@ -84,13 +104,13 @@ export default function Login() {
         try {
             const res = await axios.post('http://127.0.0.1:8000/api/register/', newUser);
             if (res.data.status === 'success') {
-                alert("Account created successfully! You can now Login.");
+                showSuccess("Account created successfully! You can now Login.");
                 setIsRegistering(false);
                 // Clear state
                 setUsername(''); setPassword(''); setFName(''); setLName('');
             }
         } catch (err) {
-            alert(err.response?.data?.message || "Registration failed.");
+            showError(err.response?.data?.message || "Registration failed.");
         }
     };
 
@@ -112,8 +132,20 @@ export default function Login() {
 
                         <div className="panel">
                             <h3>Credentials</h3>
-                            <input type="text" placeholder="Username" value={username} onChange={(e) => setUsername(e.target.value)} />
-                            <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} />
+                            <input 
+                                type="text" 
+                                placeholder="Username" 
+                                value={username} 
+                                onChange={(e) => setUsername(e.target.value)}
+                                onKeyDown={handleLoginKeyPress}
+                            />
+                            <input 
+                                type="password" 
+                                placeholder="Password" 
+                                value={password} 
+                                onChange={(e) => setPassword(e.target.value)}
+                                onKeyDown={handleLoginKeyPress}
+                            />
                             <button className="btn-blue" onClick={handleLogin} style={{ width: '100%', marginTop: '10px' }}>Login to Portal</button>
                             <p className="auth-switch" style={{ textAlign: 'center', marginTop: '15px' }}>
                                 New here? <button className="link-btn" onClick={() => setIsRegistering(true)}>Register</button>
@@ -159,7 +191,14 @@ export default function Login() {
 
                             <input type="email" placeholder="Email" value={email} style={{ marginTop: '10px' }} onChange={(e) => setEmail(e.target.value)} />
                             <input type="text" placeholder="Username" value={username} style={{ marginTop: '10px' }} onChange={(e) => setUsername(e.target.value)} />
-                            <input type="password" placeholder="Password" value={password} style={{ marginTop: '10px' }} onChange={(e) => setPassword(e.target.value)} />
+                            <input 
+                                type="password" 
+                                placeholder="Password" 
+                                value={password} 
+                                style={{ marginTop: '10px' }} 
+                                onChange={(e) => setPassword(e.target.value)}
+                                onKeyDown={handleRegisterKeyPress}
+                            />
                             
                             <button className="btn-green" onClick={handleRegister} style={{ width: '100%', marginTop: '20px' }}>Create Account</button>
                             <p className="auth-switch" style={{ textAlign: 'center', marginTop: '15px' }}>
