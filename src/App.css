@@ -19,6 +19,23 @@ body {
     padding: 32px 16px;
 }
 
+.auth-center {
+    align-items: center;
+    padding-top: 24px;
+    padding-bottom: 24px;
+}
+
+.dashboard-bg {
+    width: 100%;
+    min-height: 100vh;
+    background-image: linear-gradient(rgba(255,255,255,0.08), rgba(255,255,255,0.08)), url('./assets/uabg.png');
+    background-repeat: no-repeat;
+    background-position: center top;
+    background-size: cover;
+    background-attachment: fixed;
+    padding-top: 40px;
+}
+
 /* --- 2. LAYOUT COMPONENTS --- */
 .card {
     width: 100%;
@@ -130,13 +147,15 @@ button {
 }
 
 button:hover {
-    opacity: 0.9;
+    opacity: 0.92;
     transform: translateY(-1px);
 }
 
-.btn-blue { background: #2563eb; }
+.btn-blue, .btn-purple {
+    background: #1e40af;
+}
+
 .btn-green { background: #16a34a; }
-.btn-purple { background: #7c3aed; }
 .btn-gray { background: #4b5563; }
 .btn-red { background: #dc2626; }
 
@@ -157,10 +176,66 @@ button:hover {
 /* --- 6. NAVIGATION & TOPBAR --- */
 .topbar {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     justify-content: space-between;
     gap: 16px;
     margin-bottom: 12px;
+}
+
+.welcome-row {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 6px;
+}
+
+.header-banner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    margin-bottom: 20px;
+    padding: 18px 0 6px;
+}
+
+.header-banner img {
+    width: 72px;
+    height: 72px;
+    object-fit: contain;
+    border-radius: 22px;
+    padding: 10px;
+    background: rgba(255,255,255,0.92);
+    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.12);
+}
+
+.brand-title {
+    font-size: 1.35rem;
+    font-weight: 900;
+    letter-spacing: 0.35px;
+    color: #0f172a;
+}
+
+.brand-subtitle {
+    margin-top: 5px;
+    font-size: 1.05rem;
+    color: #1e40af;
+    font-weight: 700;
+}
+
+.dashboard-welcome {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    margin-bottom: 18px;
+    padding-top: 8px;
+    border-bottom: none;
+}
+
+.dashboard-welcome h2 {
+    font-size: 1.35rem;
+    margin: 0;
 }
 
 /* Tabs */
@@ -179,6 +254,93 @@ button:hover {
     font-weight: 500;
     color: #64748b;
     transition: all 0.2s;
+}
+
+.admin-layout {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+}
+
+.admin-tabs {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 220px;
+    background: #ffffff;
+    border-radius: 20px;
+    padding: 16px;
+    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+}
+
+.admin-main {
+    flex: 1;
+}
+
+.admin-tabs .tab-button {
+    width: 100%;
+    padding: 14px 18px;
+    text-align: left;
+    border: 1px solid transparent;
+    border-radius: 16px;
+    background: #f8fafc;
+    transition: background 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
+}
+
+.admin-tabs .tab-button:hover {
+    background: #eef2ff;
+}
+
+.admin-tabs .tab-button.active {
+    color: #1d4ed8;
+    border-color: rgba(59, 130, 246, 0.18);
+    background: #eff6ff;
+    box-shadow: 0 8px 14px rgba(59, 130, 246, 0.12);
+}
+
+.user-nav-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    background: #ffffff;
+    border-radius: 20px;
+    padding: 18px;
+    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+}
+
+.nav-section-title {
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.7px;
+    color: #64748b;
+    text-transform: uppercase;
+}
+
+.nav-button-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.user-nav-panel .tab-button {
+    width: 100%;
+    padding: 14px 18px;
+    text-align: left;
+    border: 1px solid transparent;
+    border-radius: 16px;
+    background: #f8fafc;
+    transition: background 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
+}
+
+.user-nav-panel .tab-button:hover {
+    background: #eef2ff;
+}
+
+.user-nav-panel .tab-button.active {
+    color: #1d4ed8;
+    border-color: rgba(59, 130, 246, 0.18);
+    background: #eff6ff;
+    box-shadow: 0 8px 14px rgba(59, 130, 246, 0.12);
 }
 
 .tab-button:hover {

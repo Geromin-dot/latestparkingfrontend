@@ -2,9 +2,9 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { usePopup } from '../components/PopupContext';
-import StickerManagement from '../components/StickerManagement';
 import ParkingManagement from '../components/ParkingManagement';
 import { encryptDES, decryptDES } from '../utils/desCrypto';
+import ualogo from '../assets/ualogo.png';
 
 /**
  * ============================================================
@@ -362,6 +362,15 @@ export default function UserDashboard() {
         const currentStickers = getValidUserStickers();
         if (!currentStickers.includes(normalizedStickerId)) {
             showError(`Invalid sticker ID. Valid approved stickers: ${currentStickers.join(', ') || 'None available - please contact admin'}`);
+            return false;
+        }
+
+        const alreadyParkedSlot = parkingSlots.find(slot =>
+            slot.status === 'occupied' &&
+            (slot.stickerId || '').trim().toUpperCase() === normalizedStickerId
+        );
+        if (alreadyParkedSlot) {
+            showError(`Sticker ${normalizedStickerId} is already parked in slot ${alreadyParkedSlot.id}.`);
             return false;
         }
 
@@ -1070,11 +1079,20 @@ export default function UserDashboard() {
     );
 
     return (
-        <div className="center">
+        <div className="center dashboard-bg">
             <div className="card dashboard-card">
+                
+                <div className="header-banner">
+                    <img src={ualogo} alt="UA Logo" />
+                    <div>
+                        <div className="brand-title">University of the Assumption</div>
+                        <div className="brand-subtitle">UA Parking Portal</div>
+                    </div>
+                </div>
+
                 <div className="topbar">
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <h2 style={{ margin: 0 }}>Welcome, <span style={{ color: '#6366f1' }}>{displayFullName}</span></h2>
+                    <div className="welcome-row">
+                        <h2 style={{ margin: 0 }}>Welcome, <span style={{ color: '#1e40af' }}>{displayFullName}</span></h2>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <p className="subtitle" style={{ margin: 0 }}>UA Parking Portal •</p>
                             <span className={`role-badge ${isGuest ? 'guest-tag' : 'student-tag'}`}>
@@ -1083,7 +1101,7 @@ export default function UserDashboard() {
                         </div>
                     </div>
 
-                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center', position: 'relative' }}>
+                    <div className="topbar-actions" style={{ alignItems: 'center', position: 'relative' }}>
                         <button className="btn-gray slim" onClick={() => setShowSettings(true)}>⚙️</button>
 
                         <button className="btn-gray slim bell-btn" onClick={() => setShowNotif(!showNotif)}>
@@ -1276,6 +1294,12 @@ export default function UserDashboard() {
                     userReservations={userReservations}
                     records={records}
                     TOTAL_PARKING_SLOTS={TOTAL_PARKING_SLOTS}
+                    parentActiveTab={activeTab}
+                    setParentActiveTab={setActiveTab}
+                    paymentMethods={paymentMethods}
+                    displayFullName={displayFullName}
+                    decryptData={decryptData}
+                    fetchUserRecords={fetchUserRecords}
                     getValidUserStickers={getValidUserStickers}
                     getPlateFromSticker={getPlateFromSticker}
                     getReservationInfo={getReservationInfo}
@@ -1284,221 +1308,6 @@ export default function UserDashboard() {
                     getSlotTooltipText={getSlotTooltipText}
                     fetchUserReservations={fetchUserReservations}
                 />
-
-                    </div>
-
-                    <div style={{ flex: '1 1 680px', minWidth: 0 }}>
-
-                {activeTab === 'stickers' && (
-                <>
-                <StickerManagement
-                    user={user}
-                    records={records}
-                    paymentMethods={paymentMethods}
-                    displayFullName={displayFullName}
-                    decryptData={decryptData}
-                    fetchUserRecords={fetchUserRecords}
-                />
-                </>)}
-
-                {activeTab === 'dashboard' && (
-                <>
-
-                <div className="panel">
-                    <h3 className="panel-title">Dashboard</h3>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px' }}>
-                        <div style={{ background: '#eef2ff', border: '1px solid #c7d2fe', borderRadius: '10px', padding: '12px' }}>
-                            <div style={{ color: '#4c1d95', fontSize: '12px', fontWeight: 700 }}>My Applications</div>
-                            <div style={{ marginTop: '6px', fontSize: '24px', fontWeight: 800, color: '#1e1b4b' }}>{records.length}</div>
-                        </div>
-                        <div style={{ background: '#ecfeff', border: '1px solid #a5f3fc', borderRadius: '10px', padding: '12px' }}>
-                            <div style={{ color: '#0f766e', fontSize: '12px', fontWeight: 700 }}>Valid Stickers</div>
-                            <div style={{ marginTop: '6px', fontSize: '24px', fontWeight: 800, color: '#134e4a' }}>{validStickerList.length}</div>
-                        </div>
-                        <div style={{ background: '#fef3c7', border: '1px solid #fde68a', borderRadius: '10px', padding: '12px' }}>
-                            <div style={{ color: '#92400e', fontSize: '12px', fontWeight: 700 }}>Pending Reservations</div>
-                            <div style={{ marginTop: '6px', fontSize: '24px', fontWeight: 800, color: '#78350f' }}>{pendingReservationsCount}</div>
-                        </div>
-                        <div style={{ background: '#dcfce7', border: '1px solid #86efac', borderRadius: '10px', padding: '12px' }}>
-                            <div style={{ color: '#166534', fontSize: '12px', fontWeight: 700 }}>Occupied Slots</div>
-                            <div style={{ marginTop: '6px', fontSize: '24px', fontWeight: 800, color: '#14532d' }}>{occupiedCount} / {TOTAL_PARKING_SLOTS}</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="panel">
-                    <h3 className="panel-title">📋 My Parking Reservations</h3>
-                    {userReservations.length === 0 ? (
-                        <p style={{ color: '#64748b' }}>You haven't made any reservations yet.</p>
-                    ) : (
-                        <div style={{ overflowX: 'auto' }}>
-                            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                                <thead>
-                                    <tr style={{ background: '#f1f5f9' }}>
-                                        <th style={{ padding: '10px', textAlign: 'left', borderBottom: '1px solid #e2e8f0' }}>Spots</th>
-                                        <th style={{ padding: '10px', textAlign: 'left', borderBottom: '1px solid #e2e8f0' }}>Reason</th>
-                                        <th style={{ padding: '10px', textAlign: 'left', borderBottom: '1px solid #e2e8f0' }}>Reserved For</th>
-                                        <th style={{ padding: '10px', textAlign: 'left', borderBottom: '1px solid #e2e8f0' }}>Status</th>
-                                        <th style={{ padding: '10px', textAlign: 'left', borderBottom: '1px solid #e2e8f0' }}>Submitted</th>
-                                        <th style={{ padding: '10px', textAlign: 'left', borderBottom: '1px solid #e2e8f0' }}>Admin Notes</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {paginatedUserReservations.map((res) => {
-                                        const statusColor = 
-                                            res.status === 'approved' ? '#10b981' :
-                                            res.status === 'denied' ? '#ef4444' :
-                                            res.status === 'pending' ? '#f59e0b' :
-                                            '#6b7280';
-                                        const statusBg = 
-                                            res.status === 'approved' ? '#d1fae5' :
-                                            res.status === 'denied' ? '#fee2e2' :
-                                            res.status === 'pending' ? '#fef3c7' :
-                                            '#f3f4f6';
-
-                                        return (
-                                            <tr key={res.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
-                                                <td style={{ padding: '10px', fontWeight: 600 }}>
-                                                    {Array.isArray(res.reserved_spots) 
-                                                        ? res.reserved_spots.join(', ')
-                                                        : JSON.parse(res.reserved_spots || '[]').join(', ')}
-                                                </td>
-                                                <td style={{ padding: '10px', fontSize: '12px' }}>{res.reservation_reason}</td>
-                                                <td style={{ padding: '10px', fontSize: '12px' }}>
-                                                    {new Date(res.reserved_for_datetime).toLocaleString()}
-                                                </td>
-                                                <td style={{ padding: '10px' }}>
-                                                    <span style={{
-                                                        display: 'inline-block',
-                                                        padding: '4px 8px',
-                                                        background: statusBg,
-                                                        color: statusColor,
-                                                        borderRadius: '4px',
-                                                        fontSize: '11px',
-                                                        fontWeight: 600,
-                                                        textTransform: 'uppercase'
-                                                    }}>
-                                                        {res.status}
-                                                    </span>
-                                                </td>
-                                                <td style={{ padding: '10px', fontSize: '12px' }}>
-                                                    {new Date(res.created_at).toLocaleString()}
-                                                </td>
-                                                <td style={{ padding: '10px', fontSize: '12px', color: '#64748b' }}>
-                                                    {res.admin_notes || '---'}
-                                                </td>
-                                            </tr>
-                                        );
-                                    })}
-                                </tbody>
-                            </table>
-                        </div>
-                    )}
-                    {userReservations.length > USER_RESERVATIONS_PAGE_SIZE && (
-                        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '8px', marginTop: '10px', flexWrap: 'wrap' }}>
-                            <button
-                                className="btn-gray slim"
-                                onClick={() => setUserReservationsPage((prev) => Math.max(1, prev - 1))}
-                                disabled={safeUserReservationsPage === 1}
-                                style={{ marginTop: 0, opacity: safeUserReservationsPage === 1 ? 0.6 : 1, fontSize: '12px', padding: '4px 8px' }}
-                            >
-                                Prev
-                            </button>
-                            <span style={{ fontSize: '11px', fontWeight: 700, color: '#334155', minWidth: '90px', textAlign: 'center' }}>
-                                Page {safeUserReservationsPage} of {userReservationsTotalPages}
-                            </span>
-                            <button
-                                className="btn-gray slim"
-                                onClick={() => setUserReservationsPage((prev) => Math.min(userReservationsTotalPages, prev + 1))}
-                                disabled={safeUserReservationsPage === userReservationsTotalPages}
-                                style={{ marginTop: 0, opacity: safeUserReservationsPage === userReservationsTotalPages ? 0.6 : 1, fontSize: '12px', padding: '4px 8px' }}
-                            >
-                                Next
-                            </button>
-                        </div>
-                    )}
-                </div>
-
-                </>)}
-
-                {activeTab === 'sticker-verification' && (
-                <>
-
-                <div className="panel">
-                    <h3 className="panel-title">Sticker Verification</h3>
-                    {validStickerList.length === 0 ? (
-                        <p style={{ color: '#64748b' }}>No active sticker found for this account.</p>
-                    ) : (
-                        <div style={{ overflowX: 'auto' }}>
-                            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                                <thead>
-                                    <tr style={{ background: '#f1f5f9' }}>
-                                        <th style={{ padding: '10px', textAlign: 'left', borderBottom: '1px solid #e2e8f0' }}>Sticker ID</th>
-                                        <th style={{ padding: '10px', textAlign: 'left', borderBottom: '1px solid #e2e8f0' }}>Plate Number</th>
-                                        <th style={{ padding: '10px', textAlign: 'left', borderBottom: '1px solid #e2e8f0' }}>Expires</th>
-                                        <th style={{ padding: '10px', textAlign: 'left', borderBottom: '1px solid #e2e8f0' }}>Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {records
-                                        .filter(r => r.status === 'Approved' && r.sticker_id)
-                                        .slice()
-                                        .reverse()
-                                        .map((record, index) => {
-                                            const isSemesterValid = isStickerValidForCurrentSemester(record);
-                                            return (
-                                                <tr key={`${record.sticker_id}-${index}`} style={{ borderBottom: '1px solid #e2e8f0' }}>
-                                                    <td style={{ padding: '10px', fontWeight: 700 }}>{record.sticker_id}</td>
-                                                    <td style={{ padding: '10px' }}>{decryptData(record.plate_number)}</td>
-                                                    <td style={{ padding: '10px' }}>{record.expiration_date ? new Date(record.expiration_date).toLocaleDateString() : '---'}</td>
-                                                    <td style={{ padding: '10px' }}>
-                                                        <span style={{
-                                                            display: 'inline-block',
-                                                            padding: '4px 8px',
-                                                            borderRadius: '999px',
-                                                            background: isSemesterValid ? '#dcfce7' : '#fee2e2',
-                                                            color: isSemesterValid ? '#166534' : '#b91c1c',
-                                                            fontSize: '11px',
-                                                            fontWeight: 700
-                                                        }}>
-                                                            {isSemesterValid ? 'Verified' : 'Invalid This Semester'}
-                                                        </span>
-                                                    </td>
-                                                </tr>
-                                            );
-                                        })}
-                                </tbody>
-                            </table>
-                        </div>
-                    )}
-                </div>
-
-                </>)}
-
-                {activeTab === 'reports' && isAdmin && (
-                <>
-
-                <div className="panel">
-                    <h3 className="panel-title">Reports</h3>
-                    <p style={{ marginTop: 0, color: '#64748b' }}>Admin snapshot of your current parking and reservation activity.</p>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
-                        <div style={{ border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px', background: '#ffffff' }}>
-                            <div style={{ color: '#334155', fontSize: '12px', fontWeight: 700 }}>Total Reservations</div>
-                            <div style={{ marginTop: '6px', fontSize: '24px', fontWeight: 800, color: '#0f172a' }}>{userReservations.length}</div>
-                        </div>
-                        <div style={{ border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px', background: '#ffffff' }}>
-                            <div style={{ color: '#334155', fontSize: '12px', fontWeight: 700 }}>Approved Applications</div>
-                            <div style={{ marginTop: '6px', fontSize: '24px', fontWeight: 800, color: '#0f172a' }}>{records.filter(r => r.status === 'Approved').length}</div>
-                        </div>
-                        <div style={{ border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px', background: '#ffffff' }}>
-                            <div style={{ color: '#334155', fontSize: '12px', fontWeight: 700 }}>Occupied Slots</div>
-                            <div style={{ marginTop: '6px', fontSize: '24px', fontWeight: 800, color: '#0f172a' }}>{occupiedCount}</div>
-                        </div>
-                    </div>
-                </div>
-
-                </>)}
-
                 {showLeaveConfirmModal && (
                     <div style={{
                         position: 'fixed',

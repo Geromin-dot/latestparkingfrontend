@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { usePopup } from '../components/PopupContext';
 import { decryptDES } from '../utils/desCrypto';
+import ualogo from '../assets/ualogo.png';
 
 /**
  * AdminPanel Component
@@ -57,8 +58,8 @@ export default function AdminPanel() {
 
     // Parking management state
     const [parkingSlots, setParkingSlots] = useState([]);
-    const [parkStickerInput, setParkStickerInput] = useState('');
-    const [parkGuestPlateInput, setParkGuestPlateInput] = useState('');
+    const [parkStickerInputs, setParkStickerInputs] = useState({});
+    const [parkGuestPlateInputs, setParkGuestPlateInputs] = useState({});
     const [selectedParkingAreaName, setSelectedParkingAreaName] = useState('Old Parking Space');
     const [selectedParkingSlotId, setSelectedParkingSlotId] = useState(null);
     const [parkingQuery, setParkingQuery] = useState('');
@@ -82,6 +83,8 @@ export default function AdminPanel() {
     const [showPersonnelNotif, setShowPersonnelNotif] = useState(false);
     const [personnelNotifItems, setPersonnelNotifItems] = useState([]);
     const [readPersonnelNotifKeys, setReadPersonnelNotifKeys] = useState([]);
+    const [reasonModalOpen, setReasonModalOpen] = useState(false);
+    const [reasonModalText, setReasonModalText] = useState('');
 
     // Root admin personnel creation form state.
     const [personnelFirstName, setPersonnelFirstName] = useState('');
@@ -764,28 +767,30 @@ export default function AdminPanel() {
     const handleTableParkVehicle = (slotId) => {
         const targetSlot = parkingSlots.find((slot) => slot.id === slotId);
         if (isGuestReservationWindow(targetSlot)) {
-            if (!parkGuestPlateInput.trim()) {
+            const guestPlateInput = (parkGuestPlateInputs[slotId] || '').trim();
+            if (!guestPlateInput) {
                 showError('Enter plate number for guest/event parking.');
                 return;
             }
-            if (parkGuestVehicle(slotId, parkGuestPlateInput)) {
-                setParkGuestPlateInput('');
+            if (parkGuestVehicle(slotId, guestPlateInput)) {
+                setParkGuestPlateInputs((prev) => ({ ...prev, [slotId]: '' }));
             }
             return;
         }
 
-        if (!parkStickerInput.trim()) {
+        const stickerInput = (parkStickerInputs[slotId] || '').trim();
+        if (!stickerInput) {
             showError('Please enter a sticker ID first');
             return;
         }
         
-        const sticker = parkStickerInput.trim().toUpperCase();
+        const sticker = stickerInput.toUpperCase();
         const validStickers = getValidStickers();
         if (validStickers.includes(sticker)) {
             const plateNumber = getPlateFromSticker(sticker);
             if (plateNumber) {
                 parkVehicle(slotId, plateNumber, sticker);
-                setParkStickerInput('');
+                setParkStickerInputs((prev) => ({ ...prev, [slotId]: '' }));
             } else {
                 showError('Could not find plate number for this sticker ID');
             }
@@ -927,16 +932,23 @@ export default function AdminPanel() {
     }, [logsPage, logsTotalPages]);
 
     return (
-        <div className="center">
+        <div className="center dashboard-bg">
             <div className="card admin-large-card">
-                
-                {/* TOPBAR */}
-                <div className="topbar" style={{ marginBottom: '20px' }}>
+                <div className="header-banner">
+                    <img src={ualogo} alt="UA Logo" />
                     <div>
-                        <h2>UA Personnel Management</h2>
-                        <p className="subtitle">Role: {isRootAdmin ? 'ROOT ADMIN' : isAdmin ? 'ADMIN' : 'SECURITY GUARD'}</p>
+                        <div className="brand-title">University of the Assumption</div>
+                        <div className="brand-subtitle">UA Personnel Portal</div>
                     </div>
-                    <div className="topbar-actions" style={{ gap: '10px', position: 'relative' }}>
+                </div>
+
+                {/* TOPBAR */}
+                <div className="topbar">
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <h2 style={{ margin: 0 }}>UA Personnel Management</h2>
+                        <p className="subtitle" style={{ margin: 0 }}>Role: {isRootAdmin ? 'ROOT ADMIN' : isAdmin ? 'ADMIN' : 'SECURITY GUARD'}</p>
+                    </div>
+                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center', position: 'relative' }}>
                         <button className="btn-gray slim bell-btn" onClick={() => setShowPersonnelNotif(!showPersonnelNotif)}>
                             🔔
                             {unreadPersonnelNotifCount > 0 && <span className="notif-count">{unreadPersonnelNotifCount}</span>}
@@ -965,154 +977,136 @@ export default function AdminPanel() {
                     </div>
                 </div>
 
-                <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
-                    <div style={{ flex: '0 0 260px', width: '260px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                        <aside style={{
-                            border: '1px solid #dbe3ee',
-                            borderRadius: '12px',
-                            background: '#f8fafc',
-                            padding: '12px'
-                        }}>
-                            <div style={{ fontSize: '12px', fontWeight: 800, letterSpacing: '0.7px', color: '#64748b', textTransform: 'uppercase', marginBottom: '10px' }}>
-                                Navigation
-                            </div>
+                {/* TABS */}
+                <div className="admin-layout">
+                    <div className="admin-tabs">
+                        {isAdmin && (
+                            <button
+                                className={`tab-button ${activeTab === 'applications' ? 'active' : ''}`}
+                                onClick={() => setActiveTab('applications')}
+                            >
+                                Applications
+                            </button>
+                        )}
+                        {isAdmin && (
+                            <button
+                                className={`tab-button ${activeTab === 'reservations' ? 'active' : ''}`}
+                                onClick={() => {
+                                    setActiveTab('reservations');
+                                    fetchPendingReservations();
+                                }}
+                            >
+                                Reservations ({pendingReservationCount})
+                            </button>
+                        )}
+                        <button
+                            className={`tab-button ${activeTab === 'parking' ? 'active' : ''}`}
+                            onClick={() => setActiveTab('parking')}
+                        >
+                            Parking Management
+                        </button>
+                        {isAdmin && (
+                            <button
+                                className={`tab-button ${activeTab === 'logs' ? 'active' : ''}`}
+                                onClick={() => setActiveTab('logs')}
+                            >
+                                Parking Logs
+                            </button>
+                        )}
+                        {isRootAdmin && (
+                            <button
+                                className={`tab-button ${activeTab === 'accounts' ? 'active' : ''}`}
+                                onClick={() => setActiveTab('accounts')}
+                            >
+                                Personnel Accounts
+                            </button>
+                        )}
+                        <button
+                            className={`tab-button ${activeTab === 'verify' ? 'active' : ''}`}
+                            onClick={() => setActiveTab('verify')}
+                        >
+                            Verify Sticker
+                        </button>
+                    </div>
 
+                    <div className="admin-main">
+                        <div style={{ marginTop: '0' }}>
+                    {activeTab === 'parking' && (
+                        <div style={{ border: '1px solid #cbd5e1', borderRadius: '12px', padding: '10px', background: '#f8fafc' }}>
+                            <h4 style={{ margin: '0 0 8px', color: '#0f172a', fontSize: '0.9rem' }}>Parking Map</h4>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                {isAdmin && (
-                                    <button
-                                        type="button"
-                                        className={`tab-button ${activeTab === 'applications' ? 'active' : ''}`}
-                                        onClick={() => setActiveTab('applications')}
-                                    >
-                                        Applications
-                                    </button>
-                                )}
-                                {isAdmin && (
-                                    <button
-                                        type="button"
-                                        className={`tab-button ${activeTab === 'reservations' ? 'active' : ''}`}
-                                        onClick={() => {
-                                            setActiveTab('reservations');
-                                            fetchPendingReservations();
-                                        }}
-                                    >
-                                        Reservations ({pendingReservationCount})
-                                    </button>
-                                )}
-                                <button
-                                    type="button"
-                                    className={`tab-button ${activeTab === 'parking' ? 'active' : ''}`}
-                                    onClick={() => setActiveTab('parking')}
-                                >
-                                    Parking Management
-                                </button>
-                                {isAdmin && (
-                                    <button
-                                        type="button"
-                                        className={`tab-button ${activeTab === 'logs' ? 'active' : ''}`}
-                                        onClick={() => setActiveTab('logs')}
-                                    >
-                                        Parking Logs
-                                    </button>
-                                )}
-                                {isRootAdmin && (
-                                    <button
-                                        type="button"
-                                        className={`tab-button ${activeTab === 'accounts' ? 'active' : ''}`}
-                                        onClick={() => setActiveTab('accounts')}
-                                    >
-                                        Personnel Accounts
-                                    </button>
-                                )}
-                                <button
-                                    type="button"
-                                    className={`tab-button ${activeTab === 'verify' ? 'active' : ''}`}
-                                    onClick={() => setActiveTab('verify')}
-                                >
-                                    Verify Sticker
-                                </button>
+                                {parkingAreas.map((area) => {
+                                    const isActive = selectedParkingAreaName === area.name;
+                                    return (
+                                        <button
+                                            key={`sidebar-area-${area.name}`}
+                                            type="button"
+                                            onClick={() => {
+                                                setSelectedParkingAreaName(area.name);
+                                                setSelectedParkingSlotId(null);
+                                            }}
+                                            style={{
+                                                padding: '8px 10px',
+                                                borderRadius: '8px',
+                                                fontSize: '0.85rem',
+                                                fontWeight: 700,
+                                                textAlign: 'left',
+                                                cursor: 'pointer',
+                                                border: isActive ? '1px solid #bfdbfe' : '1px solid #d1d5db',
+                                                background: isActive ? '#dbeafe' : '#f8fafc',
+                                                color: isActive ? '#1d4ed8' : '#334155'
+                                            }}
+                                        >
+                                            {area.name}
+                                        </button>
+                                    );
+                                })}
                             </div>
-                        </aside>
+                        </div>
+                    )}
 
-                        {activeTab === 'parking' && (
-                            <div style={{ border: '1px solid #cbd5e1', borderRadius: '12px', padding: '10px', background: '#f8fafc' }}>
-                                <h4 style={{ margin: '0 0 8px', color: '#0f172a', fontSize: '0.9rem' }}>Parking Map</h4>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                    {parkingAreas.map((area) => {
-                                        const isActive = selectedParkingAreaName === area.name;
-                                        return (
-                                            <button
-                                                key={`sidebar-area-${area.name}`}
-                                                type="button"
-                                                onClick={() => {
-                                                    setSelectedParkingAreaName(area.name);
-                                                    setSelectedParkingSlotId(null);
-                                                }}
-                                                style={{
-                                                    padding: '8px 10px',
-                                                    borderRadius: '8px',
-                                                    fontSize: '0.85rem',
-                                                    fontWeight: 700,
-                                                    textAlign: 'left',
-                                                    cursor: 'pointer',
-                                                    border: isActive ? '1px solid #bfdbfe' : '1px solid #d1d5db',
-                                                    background: isActive ? '#dbeafe' : '#f8fafc',
-                                                    color: isActive ? '#1d4ed8' : '#334155'
-                                                }}
-                                            >
-                                                {area.name}
-                                            </button>
-                                        );
-                                    })}
+                    {activeTab === 'applications' && isAdmin && (
+                        <>
+
+                        {/* STATS ROW */}
+                        <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '15px', marginBottom: '20px' }}>
+                            <div className="stat-card"><h3>TOTAL APPS</h3><p>{records.length}</p></div>
+                            <div className="stat-card" style={{ borderTop: '4px solid #ea580c' }}><h3 style={{color:'#ea580c'}}>PENDING</h3><p style={{color:'#ea580c'}}>{pendingCount}</p></div>
+                            <div className="stat-card" style={{ borderTop: '4px solid #16a34a' }}><h3 style={{color:'#16a34a'}}>APPROVED</h3><p style={{color:'#16a34a'}}>{approvedCount}</p></div>
+                            <div className="stat-card" style={{ borderTop: '4px solid #2563eb' }}><h3>REVENUE</h3><p>₱{totalRevenue.toLocaleString()}</p></div>
+                        </div>
+
+                        {/* TABLE PANEL */}
+                        <div className="panel">
+                            <div className="panel-header-with-filter">
+                                <h3 style={{ margin: 0 }}>Application Records</h3>
+                                <div className="filter-controls">
+                                    <span className="status-badge approved">Decrypted View</span>
+                                    <input type="text" className="table-filter" placeholder="Search Plate..." onChange={(e) => setSearch(e.target.value.toLowerCase())} onKeyDown={handleSearchKeyPress} />
                                 </div>
                             </div>
-                        )}
-                    </div>
 
-                    <div style={{ flex: '1 1 780px', minWidth: 0 }}>
-
-                {activeTab === 'applications' && isAdmin && (
-                <>
-
-                {/* STATS ROW */}
-                <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '15px', marginBottom: '20px' }}>
-                    <div className="stat-card"><h3>TOTAL APPS</h3><p>{records.length}</p></div>
-                    <div className="stat-card" style={{ borderTop: '4px solid #ea580c' }}><h3 style={{color:'#ea580c'}}>PENDING</h3><p style={{color:'#ea580c'}}>{pendingCount}</p></div>
-                    <div className="stat-card" style={{ borderTop: '4px solid #16a34a' }}><h3 style={{color:'#16a34a'}}>APPROVED</h3><p style={{color:'#16a34a'}}>{approvedCount}</p></div>
-                    <div className="stat-card" style={{ borderTop: '4px solid #2563eb' }}><h3>REVENUE</h3><p>₱{totalRevenue.toLocaleString()}</p></div>
-                </div>
-
-                {/* TABLE PANEL */}
-                <div className="panel">
-                    <div className="panel-header-with-filter">
-                        <h3 style={{ margin: 0 }}>Application Records</h3>
-                        <div className="filter-controls">
-                            <span className="status-badge approved">Decrypted View</span>
-                            <input type="text" className="table-filter" placeholder="Search Plate..." onChange={(e) => setSearch(e.target.value.toLowerCase())} onKeyDown={handleSearchKeyPress} />
-                        </div>
-                    </div>
-
-                    <div className="table-wrap">
-                        <table className="data-table">
-                            <thead>
-                                <tr>
-                                    <th>Owner Name</th>
-                                    <th>Role & Details</th>
-                                    <th>Plate Number</th>
-                                    <th>Sticker ID</th>
-                                    <th>Type</th>
-                                    <th>Fee</th>
-                                    <th>Payment Method</th>
-                                    <th>Reference No.</th>
-                                    <th>Expires</th>
-                                    <th>Status</th>
-                                    <th style={{ textAlign: 'right' }}>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {paginatedApplicationRows.map((v) => (
-                                    <tr key={v.id}>
-                                        <td style={{ fontWeight: 600 }}>{decryptData(v.owner_name)}</td>
+                            <div className="table-wrap">
+                                <table className="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Owner Name</th>
+                                            <th>Role & Details</th>
+                                            <th>Plate Number</th>
+                                            <th>Sticker ID</th>
+                                            <th>Type</th>
+                                            <th>Fee</th>
+                                            <th>Payment Method</th>
+                                            <th>Reference No.</th>
+                                            <th>Expires</th>
+                                            <th>Status</th>
+                                            <th style={{ textAlign: 'right' }}>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {paginatedApplicationRows.map((v) => (
+                                            <tr key={v.id}>
+                                                <td style={{ fontWeight: 600 }}>{decryptData(v.owner_name)}</td>
                                         
                                         {/* ROLE INFO COLUMN */}
                                         <td>
@@ -1350,7 +1344,19 @@ export default function AdminPanel() {
                                                     ? res.reserved_spots.join(', ')
                                                     : JSON.parse(res.reserved_spots || '[]').join(', ')}
                                             </td>
-                                            <td style={{ padding: '10px', fontSize: '12px' }}>{res.reservation_reason}</td>
+                                            <td style={{ padding: '10px', fontSize: '12px' }}>
+                                                <button
+                                                    type="button"
+                                                    className="btn-blue slim"
+                                                    onClick={() => {
+                                                        setReasonModalText((res.reservation_reason || '').trim() || 'No reason provided');
+                                                        setReasonModalOpen(true);
+                                                    }}
+                                                    style={{ marginTop: 0, padding: '8px 12px', fontSize: '11px', whiteSpace: 'nowrap' }}
+                                                >
+                                                    View Reason
+                                                </button>
+                                            </td>
                                             <td style={{ padding: '10px', fontSize: '12px' }}>
                                                 {new Date(res.reserved_for_datetime).toLocaleString()}
                                             </td>
@@ -1435,6 +1441,59 @@ export default function AdminPanel() {
                                     })}
                                 </tbody>
                             </table>
+                        </div>
+                    )}
+                    {reasonModalOpen && (
+                        <div style={{
+                            position: 'fixed',
+                            inset: 0,
+                            zIndex: 1100,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            background: 'rgba(15, 23, 42, 0.35)',
+                            padding: '20px'
+                        }}>
+                            <div style={{
+                                width: '100%',
+                                maxWidth: '680px',
+                                background: '#ffffff',
+                                borderRadius: '24px',
+                                padding: '28px 28px 24px',
+                                boxShadow: '0 24px 60px rgba(15, 23, 42, 0.18)',
+                                position: 'relative'
+                            }}>
+                                <button
+                                    type="button"
+                                    onClick={() => setReasonModalOpen(false)}
+                                    style={{
+                                        position: 'absolute',
+                                        top: '18px',
+                                        right: '18px',
+                                        width: '36px',
+                                        height: '36px',
+                                        border: 'none',
+                                        borderRadius: '999px',
+                                        background: '#f8fafc',
+                                        display: 'grid',
+                                        placeItems: 'center',
+                                        fontSize: '18px',
+                                        lineHeight: 1,
+                                        cursor: 'pointer',
+                                        color: '#475569',
+                                        boxShadow: '0 6px 14px rgba(15, 23, 42, 0.12)'
+                                    }}
+                                    aria-label="Close reason modal"
+                                >
+                                    ✕
+                                </button>
+                                <h3 style={{ margin: 0, marginBottom: '12px', color: '#0f172a' }}>Reservation Reason</h3>
+                                <div style={{ maxHeight: '60vh', overflowY: 'auto', paddingRight: '4px' }}>
+                                    <p style={{ margin: 0, whiteSpace: 'pre-wrap', lineHeight: 1.75, color: '#334155', fontSize: '0.96rem' }}>
+                                        {reasonModalText}
+                                    </p>
+                                </div>
+                            </div>
                         </div>
                     )}
                     {displayedReservationRows.length > 0 && (
@@ -1546,8 +1605,8 @@ export default function AdminPanel() {
                                                                 <input
                                                                     type="text"
                                                                     placeholder="Plate Number"
-                                                                    value={parkGuestPlateInput}
-                                                                    onChange={(e) => setParkGuestPlateInput(e.target.value)}
+                                                                    value={parkGuestPlateInputs[slot.id] || ''}
+                                                                    onChange={(e) => setParkGuestPlateInputs((prev) => ({ ...prev, [slot.id]: e.target.value }))}
                                                                     style={{ width: '96px', height: '28px', fontSize: '12px', padding: '3px 7px', boxSizing: 'border-box' }}
                                                                 />
                                                                 <button
@@ -1563,8 +1622,8 @@ export default function AdminPanel() {
                                                                 <input
                                                                     type="text"
                                                                     placeholder="Sticker ID"
-                                                                    value={parkStickerInput}
-                                                                    onChange={(e) => setParkStickerInput(e.target.value)}
+                                                                    value={parkStickerInputs[slot.id] || ''}
+                                                                    onChange={(e) => setParkStickerInputs((prev) => ({ ...prev, [slot.id]: e.target.value }))}
                                                                     style={{ width: '96px', height: '28px', fontSize: '12px', padding: '3px 7px', boxSizing: 'border-box' }}
                                                                 />
                                                                 <button
@@ -1693,7 +1752,6 @@ export default function AdminPanel() {
                 </>)}
 
                 {activeTab === 'accounts' && isRootAdmin && (
-                <>
                 <div className="panel">
                     <h3>Create Personnel Account</h3>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
@@ -1711,9 +1769,9 @@ export default function AdminPanel() {
                         <button className="btn-green" onClick={handleCreatePersonnelAccount}>Create Account</button>
                     </div>
                 </div>
-                </>)}
-
+                )}
                     </div>
+                </div>
                 </div>
 
             </div>

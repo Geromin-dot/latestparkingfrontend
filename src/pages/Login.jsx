@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { usePopup } from '../components/PopupContext';
+import ualogo from '../assets/ualogo.png';
 
 /**
  * Login Page
@@ -174,9 +175,15 @@ export default function Login() {
 
     return (
         // Centered auth card container.
-        <div className="center">
+        <div className="center dashboard-bg auth-center">
             <div className="card">
-                <h2 style={{ textAlign: 'center' }}>UA Parking System</h2>
+                <div className="header-banner">
+                    <img src={ualogo} alt="UA Logo" />
+                    <div>
+                        <div className="brand-title">University of the Assumption</div>
+                        <div className="brand-subtitle">UA Parking Portal</div>
+                    </div>
+                </div>
                 <p className="subtitle" style={{ textAlign: 'center' }}>Secure Vehicle & User Access</p>
 
                 {!isRegistering ? (

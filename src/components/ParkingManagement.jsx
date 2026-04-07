@@ -3,6 +3,7 @@ import { usePopup } from './PopupContext';
 import axios from 'axios';
 import ParkingReservationPanel from './ParkingReservationPanel';
 import ReservationModal from './ReservationModal';
+import StickerManagement from './StickerManagement';
 
 /**
  * ParkingManagement Component
@@ -15,6 +16,12 @@ export default function ParkingManagement({
     userReservations,
     records,
     TOTAL_PARKING_SLOTS,
+    parentActiveTab,
+    setParentActiveTab,
+    paymentMethods,
+    displayFullName,
+    decryptData,
+    fetchUserRecords,
     getValidUserStickers,
     getPlateFromSticker,
     getReservationInfo,
@@ -182,6 +189,15 @@ export default function ParkingManagement({
         const currentStickers = getValidUserStickers();
         if (!currentStickers.includes(normalizedStickerId)) {
             showError(`Invalid sticker ID. Valid approved stickers: ${currentStickers.join(', ') || 'None available - please contact admin'}`);
+            return false;
+        }
+
+        const alreadyParkedSlot = parkingSlots.find(slot =>
+            slot.status === 'occupied' &&
+            (slot.stickerId || '').trim().toUpperCase() === normalizedStickerId
+        );
+        if (alreadyParkedSlot) {
+            showError(`Sticker ${normalizedStickerId} is already parked in slot ${alreadyParkedSlot.id}.`);
             return false;
         }
 
@@ -631,45 +647,66 @@ export default function ParkingManagement({
     const visibleParkingAreas = [selectedParkingArea];
     // Memo-like helper call for selected slot details panel.
     const selectedParkingSlot = getSelectedParkingSlot();
+    const selectedMainTab = parentActiveTab === 'stickers' ? 'stickers' : activeTab;
 
     return (
         <>
-            {/* SIDEBAR NAVIGATION */}
-            {/* Left column: tab switching + area quick selector + selected spot action panel */}
-            <div style={{ flex: '0 0 260px', width: '260px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <aside style={{
-                    border: '1px solid #dbe3ee',
-                    borderRadius: '12px',
-                    background: '#f8fafc',
-                    padding: '12px'
-                }}>
-                    <div style={{ fontSize: '12px', fontWeight: 800, letterSpacing: '0.7px', color: '#64748b', textTransform: 'uppercase', marginBottom: '10px' }}>
-                        Navigation
-                    </div>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '22px', flexWrap: 'nowrap' }}>
+                <div style={{ flex: '0 0 260px', width: '260px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <aside className="user-nav-panel">
+                        <div className="nav-section-title">Navigation</div>
 
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <div className="nav-button-group">
                             {/* Tab buttons only affect UI layout; no data fetch happens here. */}
-                        <button type="button" className={`tab-button ${activeTab === 'dashboard' ? 'active' : ''}`} onClick={() => setActiveTab('dashboard')}>Dashboard</button>
-                        <button type="button" className={`tab-button ${activeTab === 'parking-map' ? 'active' : ''}`} onClick={() => setActiveTab('parking-map')}>Parking Map</button>
-                    </div>
-                </aside>
+                            <button
+                                type="button"
+                                className={`tab-button ${selectedMainTab === 'dashboard' ? 'active' : ''}`}
+                                onClick={() => {
+                                    setActiveTab('dashboard');
+                                    setParentActiveTab && setParentActiveTab('dashboard');
+                                }}
+                            >
+                                Dashboard
+                            </button>
+                            <button
+                                type="button"
+                                className={`tab-button ${selectedMainTab === 'parking-map' ? 'active' : ''}`}
+                                onClick={() => {
+                                    setActiveTab('parking-map');
+                                    setParentActiveTab && setParentActiveTab('parking-map');
+                                }}
+                            >
+                                Parking Map
+                            </button>
+                            <button
+                                type="button"
+                                className={`tab-button ${selectedMainTab === 'stickers' ? 'active' : ''}`}
+                                onClick={() => {
+                                    setActiveTab('stickers');
+                                    setParentActiveTab && setParentActiveTab('stickers');
+                                }}
+                            >
+                                Sticker
+                            </button>
+                        </div>
+                    </aside>
 
-                {activeTab === 'parking-map' && (
-                    <div style={{ border: '1px solid #cbd5e1', borderRadius: '12px', padding: '10px', background: '#f8fafc' }}>
-                        <h4 style={{ margin: '0 0 10px', color: '#0f172a', fontSize: '0.9rem' }}>Parking Map</h4>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                            {parkingAreas.map((area) => {
-                                // Visual highlight differs per area for quick orientation.
-                                const isActive = selectedParkingAreaName === area.name;
-                                const activeStyleByArea = area.name === 'Old Parking Space'
-                                    ? { border: '1px solid #dbeafe', background: '#eff6ff', color: '#1d4ed8' }
-                                    : area.name === 'Vertical Parking Space'
-                                        ? { border: '1px solid #ccfbf1', background: '#ecfeff', color: '#0f766e' }
-                                        : { border: '1px solid #fbcfe8', background: '#fdf2f8', color: '#be185d' };
+                    {activeTab === 'parking-map' && (
+                        <div style={{ border: '1px solid #cbd5e1', borderRadius: '12px', padding: '10px', background: '#f8fafc' }}>
+                            <h4 style={{ margin: '0 0 10px', color: '#0f172a', fontSize: '0.9rem' }}>Parking Map</h4>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                {parkingAreas.map((area) => {
+                                    // Visual highlight differs per area for quick orientation.
+                                    const isActive = selectedParkingAreaName === area.name;
+                                    const activeStyleByArea = area.name === 'Old Parking Space'
+                                        ? { border: '1px solid #dbeafe', background: '#eff6ff', color: '#1d4ed8' }
+                                        : area.name === 'Vertical Parking Space'
+                                            ? { border: '1px solid #ccfbf1', background: '#ecfeff', color: '#0f766e' }
+                                            : { border: '1px solid #fbcfe8', background: '#fdf2f8', color: '#be185d' };
 
-                                return (
-                                    <button
-                                        key={`sidebar-${area.name}`}
+                                    return (
+                                        <button
+                                            key={`sidebar-${area.name}`}
                                         type="button"
                                         onClick={() => {
                                             setSelectedParkingAreaName(area.name);
@@ -696,7 +733,7 @@ export default function ParkingManagement({
                     </div>
                 )}
 
-                {activeTab === 'parking-map' && (
+                {selectedMainTab === 'parking-map' && (
                     <div style={{ border: '1px solid #cbd5e1', borderRadius: '12px', padding: '10px', background: '#f8fafc' }}>
                         <h4 style={{ margin: '0 0 8px', color: '#0f172a', fontSize: '0.9rem' }}>Spot Interaction</h4>
                         {selectedParkingSlot ? (
@@ -935,7 +972,18 @@ export default function ParkingManagement({
             {/* MAIN CONTENT AREA */}
             {/* Right column: either reservation dashboard cards/table or full parking map grid */}
             <div style={{ flex: '1 1 680px', minWidth: 0 }}>
-                {activeTab === 'dashboard' && (
+                {selectedMainTab === 'stickers' && (
+                    <StickerManagement
+                        user={user}
+                        records={records}
+                        paymentMethods={paymentMethods}
+                        displayFullName={displayFullName}
+                        decryptData={decryptData}
+                        fetchUserRecords={fetchUserRecords}
+                    />
+                )}
+
+                {selectedMainTab === 'dashboard' && (
                     // Dedicated component keeps reservation dashboard concerns isolated.
                     <ParkingReservationPanel
                         userReservations={userReservations}
@@ -944,7 +992,7 @@ export default function ParkingManagement({
                     />
                 )}
 
-                {activeTab === 'parking-map' && (
+                {selectedMainTab === 'parking-map' && (
                 <div className="panel">
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '15px' }}>
                         <h3 className="panel-title" style={{ margin: 0 }}>Parking Layout Grid</h3>
@@ -1247,6 +1295,7 @@ export default function ParkingManagement({
                 </div>
                 )}
             </div>
+        </div>
 
             {/* Reservation modal is controlled entirely by state in this component. */}
             <ReservationModal
